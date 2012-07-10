@@ -14,6 +14,8 @@ class InterpreterServer(object):
     
     def listen(self):
         
+        print 'starting server', self.addr
+        
         # Create the server socket.
         self.sock = socket.socket(socket.AF_INET)
         self.sock.bind(self.addr)
