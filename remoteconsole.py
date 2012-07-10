@@ -59,6 +59,8 @@ class _fileobject(socket._fileobject):
 
 class InterpreterClient(code.InteractiveConsole):
     
+    iostack = []
+    
     def __init__(self, server, locals, sock, addr):
         self.server = server
         self.sock = sock
@@ -84,20 +86,19 @@ class InterpreterClient(code.InteractiveConsole):
     
     def push(self, line):
         
-        # Restrict execution to a single interpreter at once so we may safely
-        # replace all stdio with our socket.
-        with self.server.exec_lock:
+        # Replace all stdio with our socket. We are not preventing other threads
+        # from executing at the same time so output may end up going in the
+        # wrong direction, however we will always restore to the original once
+        # all of the clients have finished executing.
+        self.iostack.append((sys.stdin, sys.stderr, sys.stdout))
+        sys.stdin = sys.stderr = sys.stdout = self.file
             
-            # Replace all stdio with our socket.
-            saved = sys.stdin, sys.stderr, sys.stdout
-            sys.stdin = sys.stderr = sys.stdout = self.file
+        try:
+            return code.InteractiveConsole.push(self, line)
             
-            try:
-                return code.InteractiveConsole.push(self, line)
-            
-            finally:
-                # Restore original stdio.
-                sys.stdin, sys.stderr, sys.stdout = saved
+        finally:
+            # Restore original stdio.
+            sys.stdin, sys.stderr, sys.stdout = self.iostack.pop()
     
     def runsource(self, source, *args):
         
