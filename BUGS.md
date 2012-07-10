@@ -1,0 +1,2 @@
+- Cannot query maya.cmds.promptDialog(q=True, tx=True); returns None.
+- Cannot cmds.ls(sl=True); TypeError: Flag 'sl' must be passed a boolean argument
