@@ -121,9 +121,20 @@ class InterpreterClient(code.InteractiveConsole):
             self.file.close()
 
 
-if __name__ == '__main__':
-    locals = {}
-    console = InterpreterServer(('', 9000), locals)
+def listen(addr, locals=None):
+    if locals is None:
+        locals = {}
+    if isinstance(addr, int):
+        addr = ('', addr)
+    console = InterpreterServer(addr, locals)
     console.listen()
+
+def spawn(*args, **kwargs):
+    thread = threading.Thread(target=listen, args=args, kwargs=kwargs)
+    thread.start()
+    return threan
+
+if __name__ == '__main__':
+    listen(('', 9000))
 
     
