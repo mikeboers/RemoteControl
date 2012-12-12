@@ -95,6 +95,13 @@ class Server(object):
     interpreter_class = Interpreter
 
     def __init__(self, addr, locals=None):
+
+        self.addr_type = socket.AF_INET
+        if isinstance(addr, int):
+            addr = ('', addr)
+        elif isinstance(addr, basestring):
+            self.addr_type = socket.AF_UNIX
+
         self.addr = addr
         self.locals = locals
         self.exec_lock = threading.Lock()
@@ -109,7 +116,7 @@ class Server(object):
         self.debug('starting server %r', self.addr)
         
         # Create the server socket.
-        self.sock = socket.socket(socket.AF_INET)
+        self.sock = socket.socket(self.addr_type)
         self.sock.bind(self.addr)
         self.sock.listen(0)
         
@@ -136,8 +143,6 @@ class Server(object):
 def listen(addr, locals=None, server_class=Server):
     if locals is None:
         locals = {}
-    if isinstance(addr, int):
-        addr = ('', addr)
     console = server_class(addr, locals)
     console.listen()
 
@@ -150,7 +155,8 @@ def spawn(*args, **kwargs):
 
 if __name__ == '__main__':
 
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 9000
-    listen(('', port))
+    addr = sys.argv[1] if len(sys.argv) > 1 else '9000'
+    addr = int(addr) if addr.isdigit() else addr
+    listen(addr)
 
 
