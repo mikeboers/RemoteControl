@@ -4,35 +4,19 @@ import threading
 import re
 import code
 
-
-class _fileobject(socket._fileobject):
-    """A wrapper around our socket that makes it behave more line a TTY."""
-    
-    softspace = 0
-    
-    def isatty(self):
-        return True
-    
-    def flush(self):
-        pass
-    
-    def readline(self, *args):
-        return socket._fileobject.readline(self, *args).replace('\r\n', '\n')
-    
-    def write(self, data):
-        self._sock.sendall(data)
+from .. import core
 
 
 class Interpreter(code.InteractiveConsole):
     
     iostack = []
     
-    def __init__(self, server, locals, sock, addr):
+    def __init__(self, server, sock, addr, locals):
         self.server = server
         self.sock = sock
         self.addr = addr
-        self.file = _fileobject(sock)
-        code.InteractiveConsole.__init__(self, locals=locals)
+        self.file = core.fileobject(sock)
+        code.InteractiveConsole.__init__(self, locals={} if locals is None else locals)
         
     def raw_input(self, prompt):
         
@@ -90,53 +74,9 @@ class Interpreter(code.InteractiveConsole):
             self.file.close
 
 
-class Server(object):
-    
-    interpreter_class = Interpreter
+class Server(core.Server):
 
-    def __init__(self, addr, locals=None):
-
-        self.addr_type = socket.AF_INET
-        if isinstance(addr, int):
-            addr = ('', addr)
-        elif isinstance(addr, basestring):
-            self.addr_type = socket.AF_UNIX
-
-        self.addr = addr
-        self.locals = locals
-        self.exec_lock = threading.Lock()
-    
-    def debug(self, msg, *args):
-        if args:
-            msg = msg % args
-        print '# rc: %s' % msg
-
-    def listen(self):
-        
-        self.debug('starting server %r', self.addr)
-        
-        # Create the server socket.
-        self.sock = socket.socket(self.addr_type)
-        self.sock.bind(self.addr)
-        self.sock.listen(0)
-        
-        try:
-            while True:
-                
-                sock, addr = self.sock.accept()
-                self.debug('new connection: %r', addr)
-                
-                # Spawn a thread with a a client handler.
-                client = self.interpreter_class(self, self.locals, sock, addr)
-                threading.Thread(target=client.interact).start()
-        
-        except KeyboardInterrupt:
-            pass
-        
-        finally:
-            self.debug('closing: %r', addr)
-            self.sock.close()
-
+    client_class = Interpreter
 
 
 
