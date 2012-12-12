@@ -102,7 +102,7 @@ class Server(object):
     def debug(self, msg, *args):
         if args:
             msg = msg % args
-        print '# rc:', msg
+        print '# rc: %s' % msg
 
     def listen(self):
         
@@ -133,19 +133,19 @@ class Server(object):
 
 
 
-def listen(addr, locals=None):
+def listen(addr, locals=None, server_class=Server):
     if locals is None:
         locals = {}
     if isinstance(addr, int):
         addr = ('', addr)
-    console = Server(addr, locals)
+    console = server_class(addr, locals)
     console.listen()
 
 
 def spawn(*args, **kwargs):
     thread = threading.Thread(target=listen, args=args, kwargs=kwargs)
     thread.start()
-    return threan
+    return thread
 
 
 if __name__ == '__main__':
