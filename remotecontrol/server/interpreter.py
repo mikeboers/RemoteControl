@@ -1,42 +1,6 @@
 import code
-import socket
 import sys
-import threading
-import re
-
-
-class InterpreterServer(object):
-    
-    def __init__(self, addr, locals=None):
-        self.addr = addr
-        self.locals = locals
-        self.exec_lock = threading.Lock()
-    
-    def listen(self):
-        
-        print 'starting server', self.addr
-        
-        # Create the server socket.
-        self.sock = socket.socket(socket.AF_INET)
-        self.sock.bind(self.addr)
-        self.sock.listen(0)
-        
-        try:
-            while True:
-                
-                sock, addr = self.sock.accept()
-                print 'new connection from', addr
-                
-                # Spawn a thread with a a client handler.
-                client = InterpreterClient(self, self.locals, sock, addr)
-                threading.Thread(target=client.interact).start()
-        
-        except KeyboardInterrupt:
-            pass
-        
-        finally:
-            print 'shutting down server', self.addr
-            self.sock.close()
+import socket
 
 
 class _fileobject(socket._fileobject):
@@ -57,7 +21,7 @@ class _fileobject(socket._fileobject):
         self._sock.sendall(data)
 
 
-class InterpreterClient(code.InteractiveConsole):
+class Interpreter(code.InteractiveConsole):
     
     iostack = []
     
@@ -116,25 +80,6 @@ class InterpreterClient(code.InteractiveConsole):
         try:
             code.InteractiveConsole.interact(self)
         finally:
-            print 'shutting down client', self.addr
+            self.server.debug('shutting down client: %r', self.addr)
             self.sock.close()
-            self.file.close()
-
-
-def listen(addr, locals=None):
-    if locals is None:
-        locals = {}
-    if isinstance(addr, int):
-        addr = ('', addr)
-    console = InterpreterServer(addr, locals)
-    console.listen()
-
-def spawn(*args, **kwargs):
-    thread = threading.Thread(target=listen, args=args, kwargs=kwargs)
-    thread.start()
-    return threan
-
-if __name__ == '__main__':
-    listen(('', 9000))
-
-    
+            self.file.close
