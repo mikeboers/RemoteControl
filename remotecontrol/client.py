@@ -8,9 +8,14 @@ import re
 import tempfile
 import functools
 import threading
+import sys
+
+
+from . import core
 
 
 _shutdown_lock = threading.Lock()
+
 
 
 class CmdsProxy(object):
@@ -24,31 +29,26 @@ class CmdsProxy(object):
 
 class CommandSock(object):
 
-    def __init__(self):
-        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    def __init__(self, addr):
+        
+        self.addr_type, self.addr = core.conform_addr(addr)
+        self.sock = socket.socket(self.addr_type)
+        self.sock.connect(self.addr)
+
         self.buffer = ''
         self.lock = threading.Lock()
 
     def send(self, msg):
-        with self.lock:
-            while msg:
-                _, wlist, _ = select.select([], [self.sock], [], 0.1)
-                if not wlist:
-                    raise RuntimeError('timeout')
-                sent = self.sock.send(msg)
-                if not sent:
-                    # I'm not sure if we will ever hit this...
-                    raise RuntimeError('socket did not accept data')
-                msg = msg[sent:]
+        self.sock.sendall(msg)
 
     def recv(self, timeout=None):
         with self.lock:
-            while '\0' not in self.buffer:
+            while '\n' not in self.buffer:
                 rlist, _, _ = select.select([self.sock], [], [], timeout)
                 if not rlist:
                     raise RuntimeError('timeout')
                 self.buffer += self.sock.recv(8096)
-            msg, self.buffer = self.buffer.split('\0', 1)
+            msg, self.buffer = self.buffer.split('\n', 1)
             return msg
 
     def __getattr__(self, name):
@@ -57,55 +57,50 @@ class CommandSock(object):
 
 class CommandPort(object):
 
-    def __init__(self, addr=None):
+    def __init__(self, addr=None, unix_glob=None):
         
-        sock = CommandSock()
-
         if addr:
-            sock.connect(addr)
-        else:
-            for addr in glob.glob('/var/tmp/maya.*.pysock'):
+            self.sock = CommandSock(addr)
+
+        elif unix_glob:
+            for addr in glob.glob(unix_glob):
                 try:
-                    sock.connect(addr)
+                    self.sock = CommandSock(addr)
                 except socket.error:
                     continue
                 else:
                     break
             else:
-                raise ValueError('no Maya sockets in /var/tmp')
+                raise ValueError('could not glob a socket')
 
-        # Setup a dedicated commandPort. We let Maya delete the socket when it is done with it, but
-        # we do try ourselves at the very end.
-        self._tempfile = tempfile.NamedTemporaryFile(prefix='maya_child.', suffix='.pysock', delete=False)
-        sock.send('cmds.commandPort(name=%r, sourceType="python")\n' % self._tempfile.name)
-        sock.recv(1)
-        self.sock = CommandSock()
-        self.sock.connect(self._tempfile.name)
+        else:
+            raise ValueError('must specify addr or unix_glob')
 
         # Setup command proxy.
         self.cmds = CmdsProxy(self)
 
     def __del__(self):
         self.close()
-    
+
     def close(self):
-
-        # Need to serialize this access, otherwise we *will* crash Maya.
-        with _shutdown_lock:
-            self.send('cmds.commandPort(name=%r, close=True)\n' % self._tempfile.name)
-            self.recv(0.1)
-
-        # Kill the file if Maya didn't.
-        try:
-            os.unlink(self._tempfile.name)
-        except OSError:
-            pass
+        self.sock.close()
 
     def call(self, func, args=None, kwargs=None, timeout=None):
         package = base64.b64encode(pickle.dumps((func, args or (), kwargs or {})))
         expr = '__import__(%r, fromlist=["."]).dispatch(%r)\n' % (__name__, package)
         self.sock.send(expr)
         res = self.sock.recv()
+
+        # Deal with the raw transport encoding.
+        if res.startswith('ok: '):
+            res = res[4:].decode('string-escape')
+        elif res.startswith('exc: '):
+            res = res[5:].decode('string-escape')
+            raise RuntimeError('error from remote: %s' % res)
+        else:
+            raise RuntimeError('bad message: %r' % res)
+
+        # Deal with high-level encoding.
         res = pickle.loads(base64.b64decode(res))
         if res.get('status') == 'ok':
             return res['res']
@@ -146,6 +141,4 @@ def dispatch(package):
     except Exception as e:
         res = dict(status='exception', type=e.__class__, args=e.args)
     return base64.b64encode(pickle.dumps(res))
-
-
 

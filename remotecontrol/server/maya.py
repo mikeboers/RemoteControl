@@ -21,15 +21,15 @@ import maya.utils
 from . import generic
 
 
-class Interpreter(generic.Interpreter):
+class CommandPort(generic.CommandPort):
 
-    def _runsource(self, *args):
-        return maya.utils.executeInMainThreadWithResult(code.InteractiveInterpreter.runsource, self, *args)
+    def eval(self, *args):
+        return maya.utils.executeInMainThreadWithResult(eval, *args)
 
 
 class Server(generic.Server):
 
-    interpreter_class = Interpreter
+    client_class = CommandPort
 
 
 listen = functools.partial(generic.listen, server_class=Server)

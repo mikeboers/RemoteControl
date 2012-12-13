@@ -2,7 +2,7 @@
 
 
 import autoreload
-import remotecontrol.server.maya as rc
+import remotecontrol.interpreter.maya as rc
 autoreload.autoreload(rc)
 
 thread = rc.spawn(('', 9100))
@@ -29,7 +29,7 @@ class Interpreter(generic.Interpreter):
 
 class Server(generic.Server):
 
-    interpreter_class = Interpreter
+    client_class = Interpreter
 
 
 listen = functools.partial(generic.listen, server_class=Server)

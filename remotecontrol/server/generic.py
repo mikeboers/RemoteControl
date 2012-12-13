@@ -24,18 +24,22 @@ class CommandPort(object):
                     expr = self.file.readline()
                     if not expr:
                         break
-                    res = eval(expr, self.locals)
+                    res = self.eval(expr, self.locals)
                 except KeyboardInterrupt:
                     pass
                 except:
-                    self.sock.sendall('err: %s\n' % traceback.format_exc().encode('string-escape'))
+                    self.sock.sendall('exc: %s\n' % traceback.format_exc().encode('string-escape'))
                 else:
-                    self.sock.sendall('ok: %s\n' % res)
+                    self.sock.sendall('ok: %s\n' % str(res).encode('string-escape'))
 
         finally:
             self.server.debug('shutting down client: %r', self.addr)
             self.sock.close()
             self.file.close
+
+    def eval(self, expr, locals_):
+        return eval(expr, locals_)
+
 
 
 class Server(core.Server):

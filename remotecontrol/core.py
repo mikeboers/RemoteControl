@@ -20,19 +20,22 @@ class fileobject(socket._fileobject):
         self._sock.sendall(data)
 
 
+def conform_addr(addr):
+    type_ = socket.AF_INET
+    if isinstance(addr, int):
+        addr = ('', addr)
+    elif isinstance(addr, basestring):
+        type_ = socket.AF_UNIX
+    return type_, addr
+
+
 class Server(object):
     
     client_class = None
 
     def __init__(self, addr, *args, **kwargs):
 
-        self.addr_type = socket.AF_INET
-        if isinstance(addr, int):
-            addr = ('', addr)
-        elif isinstance(addr, basestring):
-            self.addr_type = socket.AF_UNIX
-
-        self.addr = addr
+        self.addr_type, self.addr = conform_addr(addr)
         self.locals = locals
         self.exec_lock = threading.Lock()
 
