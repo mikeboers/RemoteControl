@@ -30,7 +30,6 @@ if not unix_glob and not args:
 
 if args:
     _, addr = remotecontrol.core.conform_addr(*args)
-    print repr(addr)
 
 else:
     sock = socket.socket(socket.AF_UNIX)
