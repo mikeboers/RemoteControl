@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+
+import optparse
+import glob
+import socket
+import subprocess
+import os
+
+import remotecontrol.core
+
+
+option_parser = optparse.OptionParser()
+option_parser.add_option('-m', '--maya', dest='maya', action='store_true')
+option_parser.add_option('-r', '--raw', dest='raw', action='store_true')
+
+opts, args = option_parser.parse_args()
+
+addr = None
+unix_glob = None
+
+if opts.maya:
+    if opts.raw:
+        unix_glob = '/var/tmp/maya.*.cmdsock'
+    else:
+        unix_glob = '/var/tmp/maya.*.pysock'
+
+if not unix_glob and not args:
+    option_parser.print_usage()
+    exit(1)
+
+if args:
+    _, addr = remotecontrol.core.conform_addr(*args)
+
+else:
+    sock = socket.socket(socket.AF_UNIX)
+    for addr in glob.glob(unix_glob):
+        try:
+            sock.connect(addr)
+            break
+        except:
+            continue
+    else:
+        print 'could not find socket'
+        exit(2)
+    sock.close()
+
+
+inputrc = os.path.abspath(os.path.join(__file__, '..', '..', 'inputrc'))
+environ = dict(os.environ)
+environ['INPUTRC'] = inputrc
+
+def which(cmd):
+    proc = subprocess.Popen(['which', cmd], stdout=subprocess.PIPE)
+    out, err = proc.communicate()
+    return out.strip()
+
+if which('rlwrap'):
+    if isinstance(addr, basestring):
+        os.execvpe('rlwrap', ['rlwrap', 'nc', '-U', addr], environ)
+    else:
+        os.execvpe('rlwrap', ['rlwrap', 'nc', addr[0], str(addr[1])], environ)
+
+elif which('socat'):
+    if isinstance(addr, basestring):
+        print 'socat and unix?!'
+        exit(3)
+    else:
+        os.execvpe('socat', ['socat', 'READLINE', 'TCP:%s:%s' % addr], environ)
+
+else:
+    if isinstance(addr, basestring):
+        os.execvpe('nc', ['nc', '-U', addr], environ)
+    else:
+        os.execvpe('nc', ['nc', addr[0], str(addr[1])], environ)
+
+

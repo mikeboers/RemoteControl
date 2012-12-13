@@ -69,7 +69,7 @@ class Interpreter(code.InteractiveConsole):
         try:
             code.InteractiveConsole.interact(self)
         finally:
-            self.server.debug('shutting down client: %r', self.addr)
+            self.server.debug('shutting down client %s', self.addr)
             self.sock.close()
             self.file.close
 

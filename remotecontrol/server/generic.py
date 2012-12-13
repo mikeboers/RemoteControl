@@ -33,7 +33,7 @@ class CommandPort(object):
                     self.sock.sendall('ok: %s\n' % str(res).encode('string-escape'))
 
         finally:
-            self.server.debug('shutting down client: %r', self.addr)
+            self.server.debug('shutting down client %s', self.addr)
             self.sock.close()
             self.file.close
 

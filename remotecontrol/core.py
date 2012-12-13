@@ -20,12 +20,15 @@ class fileobject(socket._fileobject):
         self._sock.sendall(data)
 
 
-def conform_addr(addr):
+def conform_addr(addr, port=None):
     type_ = socket.AF_INET
-    if isinstance(addr, int):
-        addr = ('', addr)
-    elif isinstance(addr, basestring):
-        type_ = socket.AF_UNIX
+    if port:
+        addr = (addr, int(port))
+    else:
+        if isinstance(addr, int):
+            addr = ('', addr)
+        elif isinstance(addr, basestring):
+            type_ = socket.AF_UNIX
     return type_, addr
 
 
@@ -49,7 +52,7 @@ class Server(object):
 
     def listen(self):
         
-        self.debug('starting server %r', self.addr)
+        self.debug('starting server %s', self.addr)
         
         # Create the server socket.
         self.sock = socket.socket(self.addr_type)
@@ -60,7 +63,7 @@ class Server(object):
             while True:
                 
                 sock, addr = self.sock.accept()
-                self.debug('new connection: %r', addr)
+                self.debug('new connection %s', addr)
                 
                 # Spawn a thread with a a client handler.
                 client = self.client_class(self, sock, addr, *self.args, **self.kwargs)
@@ -70,5 +73,5 @@ class Server(object):
             pass
         
         finally:
-            self.debug('closing: %r', addr)
+            self.debug('shutting down server %r', self.addr)
             self.sock.close()
