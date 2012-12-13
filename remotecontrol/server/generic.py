@@ -12,15 +12,19 @@ from .. import core
 
 class FakeIO(object):
 
-    def __init__(self, port, type):
+    def __init__(self, port, type, forward=None):
         self.port = port
         self.type = type
+        self.forward = forward
 
     def write(self, msg):
         self.port.sock.sendall('%s: %s\n' % (self.type, str(msg).encode('string-escape')))
+        if self.forward:
+            self.forward.write(msg)
 
     def flush(self):
-        pass
+        if self.forward:
+            self.forward.flush(msg)
 
 
 class CommandPort(object):
@@ -31,8 +35,8 @@ class CommandPort(object):
         self.addr = addr
         self.file = core.fileobject(sock)
 
-        self._stdout = FakeIO(self, 'stdout')
-        self._stderr = FakeIO(self, 'stderr')
+        self._stdout = FakeIO(self, 'stdout', sys.stdout)
+        self._stderr = FakeIO(self, 'stderr', sys.stderr)
 
         # Take extra care to pass anything that isn't None through.
         self.globals = {} if globals is None else globals
