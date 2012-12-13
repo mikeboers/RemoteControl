@@ -23,8 +23,8 @@ from . import generic
 
 class CommandPort(generic.CommandPort):
 
-    def eval(self, *args):
-        return maya.utils.executeInMainThreadWithResult(eval, *args)
+    def do_eval(self, expr):
+        return maya.utils.executeInMainThreadWithResult(eval, expr, self.globals, self.locals)
 
 
 class Server(generic.Server):

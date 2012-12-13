@@ -4,6 +4,8 @@ import threading
 import re
 import code
 import traceback
+import pickle
+import base64
 
 from .. import core
 
@@ -27,7 +29,20 @@ class CommandPort(object):
                     expr = self.file.readline()
                     if not expr:
                         break
-                    res = self.eval(expr, self.globals, self.locals)
+                    expr = expr[:-1]
+
+                    m = re.match(r'^(\w+): ?', expr)
+                    if m:
+                        command = m.group(1)
+                        expr = expr[m.end(0):]
+                    else:
+                        command = 'eval'
+
+                    expr = expr.decode('string-escape')
+
+                    handler = getattr(self, 'do_' + command)
+                    res = handler(expr)
+
                 except KeyboardInterrupt:
                     pass
                 except:
@@ -40,8 +55,23 @@ class CommandPort(object):
             self.sock.close()
             self.file.close
 
-    def eval(self, expr, globals, locals):
-        return eval(expr, globals, locals)
+    def do_eval(self, expr):
+        return eval(expr, self.globals, self.locals)
+
+    def do_set_pickle(self, expr):
+        name, value = pickle.loads(base64.b64decode(expr))
+        self.locals[name.strip()] = value
+
+    def do_get_pickle(self, name):
+        try:
+            try:
+                value = self.locals[name]
+            except KeyError:
+                value = self.globals[name]
+        except KeyError:
+            return ''
+        else:
+            return base64.b64encode(pickle.dumps(value))
 
 
 

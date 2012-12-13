@@ -21,15 +21,31 @@ class fileobject(socket._fileobject):
 
 
 def conform_addr(addr, port=None):
+
+    # Expand collections.
+    if isinstance(addr, (list, tuple)):
+        if not addr:
+            raise ValueError('empty addr list')
+        if len(addr) == 1:
+            addr = addr[0]
+            if port is not None:
+                raise TypeError('cannot specify addr as list and a port')
+        elif len(addr) == 2:
+            addr, port = addr
+        else:
+            raise ValueError('too many addr elements: %r' % addr)
+
     type_ = socket.AF_INET
-    if port:
-        addr = (addr, int(port))
+
+    if isinstance(addr, int) or (isinstance(addr, basestring) and addr.isdigit()):
+        addr, port = '', addr
+
+    if port is not None:
+        return socket.AF_INET, (addr, int(port))
+
     else:
-        if isinstance(addr, int) or (isinstance(addr, basestring) and addr.isdigit()):
-            addr = ('', int(addr))
-        elif isinstance(addr, basestring):
-            type_ = socket.AF_UNIX
-    return type_, addr
+        return socket.AF_UNIX, addr
+
 
 
 class Server(object):

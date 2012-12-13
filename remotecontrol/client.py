@@ -85,10 +85,11 @@ class CommandPort(object):
     def close(self):
         self.sock.close()
 
-    def call(self, func, args=None, kwargs=None, timeout=None):
-        package = base64.b64encode(pickle.dumps((func, args or (), kwargs or {})))
-        expr = '__import__(%r, fromlist=["."]).dispatch(%r)\n' % (__name__, package)
-        self.sock.send(expr)
+    def raw_call(self, command, expr):
+
+        if command:
+            expr = '%s: %s' % (command, expr)
+        self.sock.send(expr.rstrip().encode('string-escape') + '\n')
         res = self.sock.recv()
 
         # Deal with the raw transport encoding.
@@ -99,6 +100,14 @@ class CommandPort(object):
             raise RuntimeError('error from remote: %s' % res)
         else:
             raise RuntimeError('bad message: %r' % res)
+
+        return res
+
+    def call(self, func, args=None, kwargs=None, timeout=None):
+        package = base64.b64encode(pickle.dumps((func, args or (), kwargs or {})))
+        expr = '__import__(%r, fromlist=["."])._dispatch(%r)' % (__name__, package)
+
+        res = self.raw_call(None, expr)
 
         # Deal with high-level encoding.
         res = pickle.loads(base64.b64decode(res))
@@ -111,11 +120,20 @@ class CommandPort(object):
     def __call__(self, func, *args, **kwargs):
         return self.call(func, args, kwargs)
 
-    def eval(self, expr, *args, **kwargs):
+    def eval(self, *args, **kwargs):
         return self.call(eval, args, **kwargs)
 
     def mel(self, expr, **kwargs):
         return self.call('maya.mel:eval', [expr], **kwargs)
+
+    def __setitem__(self, name, value):
+        self.raw_call('set_pickle', base64.b64encode(pickle.dumps((name, value))))
+
+    def __getitem__(self, name):
+        res = self.raw_call('get_pickle', name)
+        if not res:
+            raise KeyError(name)
+        return pickle.loads(base64.b64decode(res))
 
 
 # Convenient!
@@ -133,7 +151,7 @@ def _get_func(spec):
     return getattr(mod, func_name)
 
 
-def dispatch(package):
+def _dispatch(package):
     func, args, kwargs = pickle.loads(base64.b64decode(package))
     func = _get_func(func)
     try:
@@ -141,4 +159,9 @@ def dispatch(package):
     except Exception as e:
         res = dict(status='exception', type=e.__class__, args=e.args)
     return base64.b64encode(pickle.dumps(res))
+
+
+if __name__ == '__main__':
+    __name__ = 'remotecontrol.client'
+    port = CommandPort(sys.argv[1:])
 
