@@ -1,8 +1,6 @@
-import base64
 import functools
 import glob
 import os
-import pickle
 import Queue as queue
 import re
 import select
@@ -152,19 +150,18 @@ class CommandPort(object):
         else:
             raise RuntimeError('error from remote: %s' % res)
 
-    def call(self, func, args=None, kwargs=None, timeout=None):
-        package = base64.b64encode(pickle.dumps((func, args or (), kwargs or {})))
-        expr = '__import__(%r, fromlist=["."])._dispatch(%r)' % (__name__, package)
+    def call(self, func, args=None, kwargs=None, **opts):
+        
+        res = self.raw_call('call', '%s %s %s %s' % tuple(core.dumps(x) for x in (func, args, kwargs, opts)))
+        res = core.loads(res)
 
-        res = self.raw_call('eval', expr)
-
-        # Deal with high-level encoding.
-        res = pickle.loads(base64.b64decode(res))
         if res.get('status') == 'ok':
             return res['res']
+
         if res.get('status') == 'exception':
             raise res['type'](*res['args'])
-        raise RuntimeError('bad response: %r' % res)
+
+        raise RuntimeError('bad call response: %r' % res)
 
     def __call__(self, func, *args, **kwargs):
         return self.call(func, args, kwargs)
@@ -179,38 +176,19 @@ class CommandPort(object):
         return self.call('maya.mel:eval', [expr], **kwargs)
 
     def __setitem__(self, name, value):
-        self.raw_call('set_pickle', base64.b64encode(pickle.dumps((name, value))))
+        self.raw_call('set_pickle', core.dumps((name, value)))
 
     def __getitem__(self, name):
         res = self.raw_call('get_pickle', name)
         if not res:
             raise KeyError(name)
-        return pickle.loads(base64.b64decode(res))
+        return core.loads(res)
 
 
 # Convenient!
 open = CommandPort
 
 
-def _get_func(spec):
-    if not isinstance(spec, basestring):
-        return spec
-    m = re.match(r'([\w\.]+):([\w]+)$', spec)
-    if not m:
-        raise ValueError('string funcs must be for form "package.module:function"')
-    mod_name, func_name = m.groups()
-    mod = __import__(mod_name, fromlist=['.'])
-    return getattr(mod, func_name)
-
-
-def _dispatch(package):
-    func, args, kwargs = pickle.loads(base64.b64decode(package))
-    func = _get_func(func)
-    try:
-        res = dict(status='ok', res=func(*args, **kwargs))
-    except Exception as e:
-        res = dict(status='exception', type=e.__class__, args=e.args)
-    return base64.b64encode(pickle.dumps(res))
 
 
 if __name__ == '__main__':

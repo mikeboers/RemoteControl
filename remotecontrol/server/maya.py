@@ -26,6 +26,12 @@ class CommandPort(generic.CommandPort):
     def do_eval(self, expr):
         return maya.utils.executeInMainThreadWithResult(eval, expr, self.globals, self.locals)
 
+    def _do_call(self, func, args, kwargs, opts):
+        if opts.get('main_thread', True):
+            return maya.utils.executeInMainThreadWithResult(func, *args, **kwargs)
+        else:
+            return func(*args, **kwargs)
+
 
 class Server(generic.Server):
 

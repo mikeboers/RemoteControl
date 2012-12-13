@@ -4,8 +4,7 @@ import threading
 import re
 import code
 import traceback
-import pickle
-import base64
+import ast
 
 from .. import core
 
@@ -83,8 +82,38 @@ class CommandPort(object):
     def do_exec(self, expr):
         return eval(compile(expr, '<remote>', 'exec'), self.globals, self.locals)
     
+    def do_call(self, expr):
+        
+        parts = expr.strip().split()
+        parts = [core.loads(x) for x in parts]
+        while len(parts) < 4:
+            parts.append(None)
+
+        func, args, kwargs, opts = parts
+
+        func = _get_func(func)
+        args = args or ()
+        kwargs = kwargs or {}
+        opts = opts or {}
+
+        try:
+            res = {
+                'status': 'ok',
+                'res': self._do_call(func, args, kwargs, opts),
+            }
+        except Exception as e:
+            res = {
+                'status': 'exception',
+                'type': e.__class__,
+                'args': e.args,
+            }
+        return core.dumps(res)
+
+    def _do_call(self, func, args, kwargs, opts):
+        return func(*args, **kwargs)
+
     def do_set_pickle(self, expr):
-        name, value = pickle.loads(base64.b64decode(expr))
+        name, value = core.loads(expr)
         self.locals[name.strip()] = value
 
     def do_get_pickle(self, name):
@@ -96,8 +125,18 @@ class CommandPort(object):
         except KeyError:
             return ''
         else:
-            return base64.b64encode(pickle.dumps(value))
+            return core.dumps(value)
 
+
+def _get_func(spec):
+    if not isinstance(spec, basestring):
+        return spec
+    m = re.match(r'([\w\.]+):([\w]+)$', spec)
+    if not m:
+        raise ValueError('string funcs must be for form "package.module:function"')
+    mod_name, func_name = m.groups()
+    mod = __import__(mod_name, fromlist=['.'])
+    return getattr(mod, func_name)
 
 
 class Server(core.Server):

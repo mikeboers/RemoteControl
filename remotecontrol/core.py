@@ -2,6 +2,15 @@ import socket
 import threading
 import contextlib
 import sys
+import base64
+import pickle
+
+
+def dumps(x):
+    return base64.b64encode(pickle.dumps(x))
+
+def loads(x):
+    return pickle.loads(base64.b64decode(x))
 
 
 _iostack = []
