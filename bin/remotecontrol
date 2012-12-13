@@ -30,6 +30,7 @@ if not unix_glob and not args:
 
 if args:
     _, addr = remotecontrol.core.conform_addr(*args)
+    print repr(addr)
 
 else:
     sock = socket.socket(socket.AF_UNIX)
@@ -45,32 +46,24 @@ else:
     sock.close()
 
 
-inputrc = os.path.abspath(os.path.join(__file__, '..', '..', 'inputrc'))
-environ = dict(os.environ)
-environ['INPUTRC'] = inputrc
 
 def which(cmd):
     proc = subprocess.Popen(['which', cmd], stdout=subprocess.PIPE)
     out, err = proc.communicate()
     return out.strip()
 
-if which('rlwrap'):
-    if isinstance(addr, basestring):
-        os.execvpe('rlwrap', ['rlwrap', 'nc', '-U', addr], environ)
-    else:
-        os.execvpe('rlwrap', ['rlwrap', 'nc', addr[0], str(addr[1])], environ)
 
-elif which('socat'):
-    if isinstance(addr, basestring):
-        print 'socat and unix?!'
-        exit(3)
-    else:
-        os.execvpe('socat', ['socat', 'READLINE', 'TCP:%s:%s' % addr], environ)
+environ = dict(os.environ)
+environ['INPUTRC'] = os.path.abspath(os.path.join(__file__, '..', '..', 'inputrc'))
 
+if isinstance(addr, basestring):
+    cmd = ['nc', '-U', addr]
 else:
-    if isinstance(addr, basestring):
-        os.execvpe('nc', ['nc', '-U', addr], environ)
-    else:
-        os.execvpe('nc', ['nc', addr[0], str(addr[1])], environ)
+    cmd = ['nc', addr[0], str(addr[1])]
+
+if which('rlwrap'):
+    cmd.insert(0, 'rlwrap')
+
+os.execvpe(cmd[0], cmd, environ)
 
 

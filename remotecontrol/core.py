@@ -25,8 +25,8 @@ def conform_addr(addr, port=None):
     if port:
         addr = (addr, int(port))
     else:
-        if isinstance(addr, int):
-            addr = ('', addr)
+        if isinstance(addr, int) or (isinstance(addr, basestring) and addr.isdigit()):
+            addr = ('', int(addr))
         elif isinstance(addr, basestring):
             type_ = socket.AF_UNIX
     return type_, addr
