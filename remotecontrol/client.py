@@ -137,8 +137,8 @@ class CommandPort(object):
         sys.stdout.flush()
 
     def _on_stderr(self, msg):
-        self.stderr.write(msg)
-        self.stderr.flush()
+        sys.stderr.write(msg)
+        sys.stderr.flush()
 
     def raw_call(self, command, expr):
 
