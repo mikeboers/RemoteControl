@@ -10,11 +10,14 @@ from .. import core
 
 class CommandPort(object):
     
-    def __init__(self, server, sock, addr, locals):
+    def __init__(self, server, sock, addr, globals=None, locals=None):
         self.server = server
         self.sock = sock
         self.addr = addr
         self.file = core.fileobject(sock)
+
+        # Take extra care to pass anything that isn't None through.
+        self.globals = {} if globals is None else globals
         self.locals = {} if locals is None else locals
 
     def interact(self):
@@ -24,7 +27,7 @@ class CommandPort(object):
                     expr = self.file.readline()
                     if not expr:
                         break
-                    res = self.eval(expr, self.locals)
+                    res = self.eval(expr, self.globals, self.locals)
                 except KeyboardInterrupt:
                     pass
                 except:
@@ -37,8 +40,8 @@ class CommandPort(object):
             self.sock.close()
             self.file.close
 
-    def eval(self, expr, locals_):
-        return eval(expr, locals_)
+    def eval(self, expr, globals, locals):
+        return eval(expr, globals, locals)
 
 
 
@@ -47,10 +50,8 @@ class Server(core.Server):
     client_class = CommandPort
 
 
-def listen(addr, locals=None, server_class=Server):
-    if locals is None:
-        locals = {}
-    console = server_class(addr, locals)
+def listen(addr, globals=None, locals=None, server_class=Server):
+    console = server_class(addr, globals, locals)
     console.listen()
 
 
@@ -64,6 +65,6 @@ if __name__ == '__main__':
 
     addr = sys.argv[1] if len(sys.argv) > 1 else '9000'
     addr = int(addr) if addr.isdigit() else addr
-    listen(addr)
+    listen(addr, {})
 
 

@@ -12,11 +12,15 @@ class Interpreter(code.InteractiveConsole):
     iostack = []
     
     def __init__(self, server, sock, addr, locals):
+
+        # Would be nice to user super, but it doesn't inheric from object
+        # so no dice.
+        code.InteractiveConsole.__init__(self, locals={} if locals is None else locals)
+
         self.server = server
         self.sock = sock
         self.addr = addr
         self.file = core.fileobject(sock)
-        code.InteractiveConsole.__init__(self, locals={} if locals is None else locals)
         
     def raw_input(self, prompt):
         
@@ -81,8 +85,6 @@ class Server(core.Server):
 
 
 def listen(addr, locals=None, server_class=Server):
-    if locals is None:
-        locals = {}
     console = server_class(addr, locals)
     console.listen()
 
@@ -97,6 +99,6 @@ if __name__ == '__main__':
 
     addr = sys.argv[1] if len(sys.argv) > 1 else '9000'
     addr = int(addr) if addr.isdigit() else addr
-    listen(addr)
+    listen(addr, {})
 
 
