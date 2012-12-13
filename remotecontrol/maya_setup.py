@@ -23,6 +23,9 @@ def standard_setup():
     else:
         if os.path.exists(sock1):
             os.unlink(sock1)
+
+        # Do not pass in namespaces so that each command connection is
+        # clean.
         remotecontrol.server.maya.spawn(sock1)
 
     sock2 = base + '.pysock'
@@ -33,7 +36,9 @@ def standard_setup():
     else:
         if os.path.exists(sock2):
             os.unlink(sock2)
-        remotecontrol.interpreter.maya.spawn(sock2)
+
+        # Pass globals() so it runs in the main Python namespace.
+        remotecontrol.interpreter.maya.spawn(sock2, globals())
 
 
     # Tear it down later. (This only seems to work in 2013.)
