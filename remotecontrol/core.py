@@ -1,5 +1,38 @@
 import socket
 import threading
+import contextlib
+import sys
+
+
+_iostack = []
+_iostack_lock = threading.Lock()
+
+@contextlib.contextmanager
+def replace_stdio(in_=None, out=None, err=None):
+
+    # Replace all stdio with our socket. We are not preventing other threads
+    # from executing at the same time so output may end up going in the
+    # wrong direction, however we will always restore to the original once
+    # all of the clients have finished executing.
+
+    with _iostack_lock:
+    
+        in_ = in_ or sys.stdin
+        out = out or sys.stdout
+        err = err or sys.stderr
+
+        _iostack.append((sys.stdin, sys.stderr, sys.stdout))
+        sys.stdin = in_
+        sys.stdout = out
+        sys.stderr = err
+     
+    try:
+        yield
+        
+    finally:
+
+        # Restore original stdio.
+        sys.stdin, sys.stderr, sys.stdout = _iostack.pop()
 
 
 class fileobject(socket._fileobject):
@@ -83,7 +116,9 @@ class Server(object):
                 
                 # Spawn a thread with a a client handler.
                 client = self.client_class(self, sock, addr, *self.args, **self.kwargs)
-                threading.Thread(target=client.interact).start()
+                thread = threading.Thread(target=client.interact)
+                thread.daemon = True
+                thread.start()
         
         except KeyboardInterrupt:
             pass

@@ -10,6 +10,19 @@ import base64
 from .. import core
 
 
+class FakeIO(object):
+
+    def __init__(self, port, type):
+        self.port = port
+        self.type = type
+
+    def write(self, msg):
+        self.port.sock.sendall('%s: %s\n' % (self.type, str(msg).encode('string-escape')))
+
+    def flush(self):
+        pass
+
+
 class CommandPort(object):
     
     def __init__(self, server, sock, addr, globals=None, locals=None):
@@ -17,6 +30,9 @@ class CommandPort(object):
         self.sock = sock
         self.addr = addr
         self.file = core.fileobject(sock)
+
+        self._stdout = FakeIO(self, 'stdout')
+        self._stderr = FakeIO(self, 'stderr')
 
         # Take extra care to pass anything that isn't None through.
         self.globals = {} if globals is None else globals
@@ -41,7 +57,9 @@ class CommandPort(object):
                     expr = expr.decode('string-escape')
 
                     handler = getattr(self, 'do_' + command)
-                    res = handler(expr)
+                    
+                    with core.replace_stdio(None, self._stdout, self._stderr):
+                        res = handler(expr)
 
                 except KeyboardInterrupt:
                     pass
@@ -58,6 +76,9 @@ class CommandPort(object):
     def do_eval(self, expr):
         return eval(expr, self.globals, self.locals)
 
+    def do_exec(self, expr):
+        return eval(compile(expr, '<remote>', 'exec'), self.globals, self.locals)
+    
     def do_set_pickle(self, expr):
         name, value = pickle.loads(base64.b64decode(expr))
         self.locals[name.strip()] = value

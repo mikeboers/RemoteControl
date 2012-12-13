@@ -1,14 +1,15 @@
 import base64
-import pickle
-import glob
-import socket
-import os
-import select
-import re
-import tempfile
 import functools
-import threading
+import glob
+import os
+import pickle
+import Queue as queue
+import re
+import select
+import socket
 import sys
+import tempfile
+import threading
 
 
 from . import core
@@ -43,13 +44,30 @@ class CommandSock(object):
 
     def recv(self, timeout=None):
         with self.lock:
+
             while '\n' not in self.buffer:
+
+                # Wait for it to be ready.
                 rlist, _, _ = select.select([self.sock], [], [], timeout)
                 if not rlist:
                     raise RuntimeError('timeout')
-                self.buffer += self.sock.recv(8096)
-            msg, self.buffer = self.buffer.split('\n', 1)
-            return msg
+
+                # Read!
+                new = self.sock.recv(8096)
+                self.buffer += new
+                
+                # EOF.
+                if not new:
+                    break
+
+            # If we don't have a complete message, it is likely due to
+            # an EOF, so just return None.
+            try:
+                msg, self.buffer = self.buffer.split('\n', 1)
+            except ValueError:
+                return None
+            else:
+                return msg
 
     def __getattr__(self, name):
         return getattr(self.sock, name)
@@ -60,12 +78,12 @@ class CommandPort(object):
     def __init__(self, addr=None, unix_glob=None):
         
         if addr:
-            self.sock = CommandSock(addr)
+            self._sock = CommandSock(addr)
 
         elif unix_glob:
             for addr in glob.glob(unix_glob):
                 try:
-                    self.sock = CommandSock(addr)
+                    self._sock = CommandSock(addr)
                 except socket.error:
                     continue
                 else:
@@ -76,6 +94,13 @@ class CommandPort(object):
         else:
             raise ValueError('must specify addr or unix_glob')
 
+        self._res_queue = queue.Queue()
+
+        # Start the event loop.
+        self._thread = threading.Thread(target=self._event_loop)
+        self._thread.daemon = True
+        self._thread.start()
+
         # Setup command proxy.
         self.cmds = CmdsProxy(self)
 
@@ -83,31 +108,55 @@ class CommandPort(object):
         self.close()
 
     def close(self):
-        self.sock.close()
+        self._sock.close()
+
+    def _event_loop(self):
+        
+        while True:
+            msg = self._sock.recv()
+            if msg is None:
+                break
+
+            m = re.match(r'^(\w+): ?', msg)
+            if not m:
+                raise RuntimeError('bad message from server: %r' % msg)
+
+            command = m.group(1)
+            msg = msg[m.end(0):].decode('string-escape')
+            handler = getattr(self, '_on_%s' % command)
+            handler(msg)
+
+    def _on_ok(self, msg):
+        self._res_queue.put((True, msg))
+
+    def _on_exc(self, msg):
+        self._res_queue.put((False, msg))
+
+    def _on_stdout(self, msg):
+        sys.stdout.write(msg)
+        sys.stdout.flush()
+
+    def _on_stderr(self, msg):
+        self.stderr.write(msg)
+        self.stderr.flush()
 
     def raw_call(self, command, expr):
 
         if command:
             expr = '%s: %s' % (command, expr)
-        self.sock.send(expr.rstrip().encode('string-escape') + '\n')
-        res = self.sock.recv()
+        self._sock.send(expr.rstrip().encode('string-escape') + '\n')
 
-        # Deal with the raw transport encoding.
-        if res.startswith('ok: '):
-            res = res[4:].decode('string-escape')
-        elif res.startswith('exc: '):
-            res = res[5:].decode('string-escape')
-            raise RuntimeError('error from remote: %s' % res)
+        ok, res = self._res_queue.get()
+        if ok:
+            return res
         else:
-            raise RuntimeError('bad message: %r' % res)
-
-        return res
+            raise RuntimeError('error from remote: %s' % res)
 
     def call(self, func, args=None, kwargs=None, timeout=None):
         package = base64.b64encode(pickle.dumps((func, args or (), kwargs or {})))
         expr = '__import__(%r, fromlist=["."])._dispatch(%r)' % (__name__, package)
 
-        res = self.raw_call(None, expr)
+        res = self.raw_call('eval', expr)
 
         # Deal with high-level encoding.
         res = pickle.loads(base64.b64decode(res))
@@ -122,6 +171,9 @@ class CommandPort(object):
 
     def eval(self, *args, **kwargs):
         return self.call(eval, args, **kwargs)
+
+    def exec_(self, source, **kwargs):
+        self.raw_call('exec', source)
 
     def mel(self, expr, **kwargs):
         return self.call('maya.mel:eval', [expr], **kwargs)

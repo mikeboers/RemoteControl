@@ -9,8 +9,6 @@ from .. import core
 
 class Interpreter(code.InteractiveConsole):
     
-    iostack = []
-    
     def __init__(self, server, sock, addr, locals):
 
         # Would be nice to user super, but it doesn't inheric from object
@@ -39,20 +37,10 @@ class Interpreter(code.InteractiveConsole):
         self.sock.sendall(content)
     
     def push(self, line):
-        
-        # Replace all stdio with our socket. We are not preventing other threads
-        # from executing at the same time so output may end up going in the
-        # wrong direction, however we will always restore to the original once
-        # all of the clients have finished executing.
-        self.iostack.append((sys.stdin, sys.stderr, sys.stdout))
-        sys.stdin = sys.stderr = sys.stdout = self.file
-            
-        try:
+
+        # See caveats.
+        with core.replace_stdio(self.file, self.file, self.file):
             return code.InteractiveConsole.push(self, line)
-            
-        finally:
-            # Restore original stdio.
-            sys.stdin, sys.stderr, sys.stdout = self.iostack.pop()
     
     def runsource(self, source, *args):
         
