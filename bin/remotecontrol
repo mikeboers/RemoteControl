@@ -12,6 +12,7 @@ import remotecontrol.core
 option_parser = optparse.OptionParser()
 option_parser.add_option('-m', '--maya', dest='maya', action='store_true')
 option_parser.add_option('-r', '--raw', dest='raw', action='store_true')
+option_parser.add_option('-i', '--interactive', dest='python', action='store_true')
 
 opts, args = option_parser.parse_args()
 
@@ -19,7 +20,7 @@ addr = None
 unix_glob = None
 
 if opts.maya:
-    if opts.raw:
+    if opts.raw or opts.python:
         unix_glob = '/var/tmp/maya.*.cmdsock'
     else:
         unix_glob = '/var/tmp/maya.*.pysock'
@@ -53,15 +54,20 @@ def which(cmd):
 
 
 environ = dict(os.environ)
-environ['INPUTRC'] = os.path.abspath(os.path.join(__file__, '..', '..', 'inputrc'))
 
-if isinstance(addr, basestring):
-    cmd = ['nc', '-U', addr]
+if opts.python:
+    cmd = ['python', '-im', 'remotecontrol.client', addr]
+
 else:
-    cmd = ['nc', addr[0], str(addr[1])]
 
-if which('rlwrap'):
-    cmd.insert(0, 'rlwrap')
+    if isinstance(addr, basestring):
+        cmd = ['nc', '-U', addr]
+    else:
+        cmd = ['nc', addr[0], str(addr[1])]
+
+    if which('rlwrap'):
+        environ['INPUTRC'] = os.path.abspath(os.path.join(__file__, '..', '..', 'inputrc'))
+        cmd.insert(0, 'rlwrap')
 
 os.execvpe(cmd[0], cmd, environ)
 
