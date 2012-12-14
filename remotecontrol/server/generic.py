@@ -23,7 +23,7 @@ class FakeIO(object):
 
     def flush(self):
         if self.forward:
-            self.forward.flush(msg)
+            self.forward.flush()
 
 
 class CommandPort(object):

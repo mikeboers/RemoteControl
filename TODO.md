@@ -2,6 +2,3 @@
 
 - Use a Python thread and socket server to handle our command ports.
     - Then we can carry it straight to Nuke.
-
-- Content-Encoding headers?
-    call: func args kwargs options
