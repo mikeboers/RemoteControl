@@ -23,8 +23,8 @@ from . import generic
 
 class Interpreter(generic.Interpreter):
 
-    def _runsource(self, *args):
-        return maya.utils.executeInMainThreadWithResult(code.InteractiveInterpreter.runsource, self, *args)
+    def _call_in_main_thread(self, func, *args):
+        return maya.utils.executeInMainThreadWithResult(func, *args)
 
 
 class Server(generic.Server):

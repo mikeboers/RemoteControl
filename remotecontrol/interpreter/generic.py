@@ -7,6 +7,15 @@ import code
 from .. import core
 
 
+_locals = threading.local()
+
+
+def use_main_thread(v):
+    interpreter = getattr(_locals, 'interpreter', None)
+    if interpreter:
+        interpreter.use_main_thread = bool(v)
+
+
 class Interpreter(code.InteractiveConsole):
     
     def __init__(self, server, sock, addr, locals):
@@ -19,6 +28,7 @@ class Interpreter(code.InteractiveConsole):
         self.sock = sock
         self.addr = addr
         self.file = core.fileobject(sock)
+        self.use_main_thread = True
         
     def raw_input(self, prompt):
         
@@ -52,9 +62,16 @@ class Interpreter(code.InteractiveConsole):
         if len(lines) > 1 and lines[-1].strip():
             return True
         
-        return self._runsource(source, *args)
+        if self.use_main_thread:
+            return self._call_in_main_thread(self._runsource, source, *args)
+        else:
+            return self._runsource(source, *args)
+
+    def _call_in_main_thread(self, func, *args):
+        return func(*args)
 
     def _runsource(self, source, *args):
+        _locals.interpreter = self
         return code.InteractiveInterpreter.runsource(self, source, *args)
     
     def interact(self):
