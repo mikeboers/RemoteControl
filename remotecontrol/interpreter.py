@@ -4,7 +4,9 @@ import threading
 import re
 import code
 
-from .. import core
+import uitools.threads
+
+from . import core
 
 
 _locals = threading.local()
@@ -68,7 +70,7 @@ class Interpreter(code.InteractiveConsole):
             return self._runsource(source, *args)
 
     def _call_in_main_thread(self, func, *args):
-        return func(*args)
+        return uitools.threads.call_in_main_thread(func, *args)
 
     def _runsource(self, source, *args):
         _locals.interpreter = self

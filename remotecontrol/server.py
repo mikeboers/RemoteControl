@@ -4,9 +4,10 @@ import threading
 import re
 import code
 import traceback
-import ast
 
-from .. import core
+import uitools.threads
+
+from . import core
 
 
 class FakeIO(object):
@@ -101,6 +102,9 @@ class CommandPort(object):
                 'status': 'ok',
                 'res': self._do_call(func, args, kwargs, opts),
             }
+
+        # This does not capture SystemExit or KeyboardInterrupt, which we do
+        # not want to pass through the barrier.
         except Exception as e:
             res = {
                 'status': 'exception',
@@ -110,7 +114,10 @@ class CommandPort(object):
         return core.dumps(res)
 
     def _do_call(self, func, args, kwargs, opts):
-        return func(*args, **kwargs)
+        if opts.get('main_thread', True):
+            return uitools.threads.call_in_main_thread(func, *args, **kwargs)
+        else:
+            return func(*args, **kwargs)
 
     def do_set_pickle(self, expr):
         name, value = core.loads(expr)

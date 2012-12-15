@@ -17,28 +17,28 @@ def standard_setup():
 
     sock1 = base + '.cmdsock'
     try:
-        import remotecontrol.server.maya
+        import remotecontrol.server
     except ImportError:
-        cmds.warning('Could not import remotecontrol.server.maya.')
+        cmds.warning('Could not import remotecontrol.server.')
     else:
         if os.path.exists(sock1):
             os.unlink(sock1)
 
         # Do not pass in namespaces so that each command connection is
         # clean.
-        remotecontrol.server.maya.spawn(sock1)
+        remotecontrol.server.spawn(sock1)
 
     sock2 = base + '.pysock'
     try:
-        import remotecontrol.interpreter.maya
+        import remotecontrol.interpreter
     except ImportError:
-        cmds.warning('Could not import remotecontrol.interpreter.maya.')
+        cmds.warning('Could not import remotecontrol.interpreter.')
     else:
         if os.path.exists(sock2):
             os.unlink(sock2)
 
         # Pass globals() so it runs in the main Python namespace.
-        remotecontrol.interpreter.maya.spawn(sock2, globals())
+        remotecontrol.interpreter.spawn(sock2, globals())
 
 
     # Tear it down later. (This only seems to work in 2013.)
