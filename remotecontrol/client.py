@@ -113,6 +113,9 @@ class CommandPort(object):
         while True:
             msg = self._sock.recv()
             if msg is None:
+                # Put something on the result queue so that things don't
+                # block forever. Ideally we would make the queue non-blocking.
+                self._res_queue.put((False, RuntimeError('socket closed')))
                 break
 
             m = re.match(r'^(\w+): ?', msg)
