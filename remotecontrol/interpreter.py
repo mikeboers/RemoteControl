@@ -98,6 +98,7 @@ def listen(addr, locals=None, server_class=Server):
 
 def spawn(*args, **kwargs):
     thread = threading.Thread(target=listen, args=args, kwargs=kwargs)
+    thread.daemon = True
     thread.start()
     return thread
 

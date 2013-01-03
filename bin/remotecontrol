@@ -11,6 +11,7 @@ import remotecontrol.core
 
 option_parser = optparse.OptionParser()
 option_parser.add_option('-m', '--maya', dest='maya', action='store_true')
+option_parser.add_option('-n', '--nuke', dest='nuke', action='store_true')
 option_parser.add_option('-r', '--raw', dest='raw', action='store_true')
 option_parser.add_option('-i', '--interactive', dest='python', action='store_true')
 
@@ -19,15 +20,25 @@ opts, args = option_parser.parse_args()
 addr = None
 unix_glob = None
 
+
 if opts.maya:
     if opts.raw or opts.python:
         unix_glob = '/var/tmp/maya.*.cmdsock'
     else:
         unix_glob = '/var/tmp/maya.*.pysock'
 
+
+if opts.nuke:
+    if opts.raw or opts.python:
+        unix_glob = '/var/tmp/nuke.*.cmdsock'
+    else:
+        unix_glob = '/var/tmp/nuke.*.pysock'
+
+
 if not unix_glob and not args:
     option_parser.print_usage()
     exit(1)
+
 
 if args:
     _, addr = remotecontrol.core.conform_addr(*args)
