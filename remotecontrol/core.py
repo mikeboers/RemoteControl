@@ -4,6 +4,7 @@ import contextlib
 import sys
 import base64
 import pickle
+import errno
 
 
 def dumps(x):
@@ -120,7 +121,13 @@ class Server(object):
         try:
             while True:
                 
-                sock, addr = self.sock.accept()
+                try:
+                    sock, addr = self.sock.accept()
+                except IOError as e:
+                    if e.errno == errno.EINTR:
+                        continue
+                    raise
+
                 self.debug('new connection %s', addr)
                 
                 # Spawn a thread with a a client handler.
