@@ -1,12 +1,10 @@
 import functools
 import glob
-import os
 import Queue as queue
 import re
 import select
 import socket
 import sys
-import tempfile
 import threading
 
 

@@ -7,18 +7,18 @@ def standard_setup():
     """Non-standalone user setup."""
     
     import os
-    import tempfile
-    import datetime
     import sys
     import atexit
 
+    import nuke
+    
     base = '/var/tmp/nuke.%s' % os.getpid()
 
     sock1 = base + '.cmdsock'
     try:
         import remotecontrol.server
     except ImportError:
-        cmds.warning('Could not import remotecontrol.server.')
+        nuke.warning('Could not import remotecontrol.server.')
     else:
         if os.path.exists(sock1):
             os.unlink(sock1)
@@ -31,7 +31,7 @@ def standard_setup():
     try:
         import remotecontrol.interpreter
     except ImportError:
-        cmds.warning('Could not import remotecontrol.interpreter.')
+        nuke.warning('Could not import remotecontrol.interpreter.')
     else:
         if os.path.exists(sock2):
             os.unlink(sock2)

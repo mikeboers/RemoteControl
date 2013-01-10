@@ -1,8 +1,6 @@
-import socket
 import sys
 import threading
 import re
-import code
 import traceback
 
 import uitools.threads

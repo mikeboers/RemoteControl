@@ -2,15 +2,13 @@ from __future__ import absolute_import
 
 # All imports should be in a function so that they do not polute the global
 # namespace, except for `from maya import cmds` because we want that everywhere.
-from maya import cmds, mel, OpenMaya
+from maya import cmds
 
 
 def standard_setup():
     """Non-standalone user setup."""
     
     import os
-    import tempfile
-    import datetime
     import sys
 
     base = '/var/tmp/maya.%s' % os.getpid()

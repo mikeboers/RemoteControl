@@ -1,7 +1,5 @@
-import socket
 import sys
 import threading
-import re
 import code
 
 import uitools.threads
@@ -46,7 +44,12 @@ class Interpreter(code.InteractiveConsole):
         return x
     
     def write(self, content):
-        self.sock.sendall(content)
+        try:
+            self.sock.sendall(content)
+        except:
+            sys.__stdout__.write('error while writing %r\n' % content)
+            sys.__stdout__.flush()
+            raise
     
     def push(self, line):
 

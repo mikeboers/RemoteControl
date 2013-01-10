@@ -78,8 +78,6 @@ def conform_addr(addr, port=None):
         else:
             raise ValueError('too many addr elements: %r' % addr)
 
-    type_ = socket.AF_INET
-
     if isinstance(addr, int) or (isinstance(addr, basestring) and addr.isdigit()):
         addr, port = '', addr
 
