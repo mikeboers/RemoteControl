@@ -1,3 +1,4 @@
+import logging
 import socket
 import threading
 import contextlib
@@ -5,6 +6,9 @@ import sys
 import base64
 import pickle
 import errno
+
+
+log = logging.getLogger(__name__)
 
 
 def dumps(x):
@@ -103,13 +107,11 @@ class Server(object):
         self.kwargs = kwargs
     
     def debug(self, msg, *args):
-        if args:
-            msg = msg % args
-        print '# rc: %s' % msg
+        log.debug(msg, *args)
 
     def listen(self):
         
-        self.debug('starting server %s', self.addr)
+        log.info('starting server %s', self.addr)
         
         # Create the server socket.
         self.sock = socket.socket(self.addr_type)
@@ -126,7 +128,7 @@ class Server(object):
                         continue
                     raise
 
-                self.debug('new connection %s', addr)
+                log.debug('new connection %s', addr)
                 
                 # Spawn a thread with a a client handler.
                 client = self.client_class(self, sock, addr, *self.args, **self.kwargs)
@@ -138,5 +140,5 @@ class Server(object):
             pass
         
         finally:
-            self.debug('shutting down server %r', self.addr)
+            log.debug('shutting down server %r', self.addr)
             self.sock.close()
