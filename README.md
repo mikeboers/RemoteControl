@@ -9,4 +9,4 @@ It was initially conceived to allow for remote access to long running processes 
 [repl]: http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop
 [maya]: http://www.autodesk.com/products/autodesk-maya/overview
 [nuke]: http://www.thefoundry.co.uk/products/nuke/
-[docs]: http://sgmock.readthedocs.org/
+[docs]: http://remotecontrol.readthedocs.org/
