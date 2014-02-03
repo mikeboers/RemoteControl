@@ -2,3 +2,4 @@
 .DS_Store
 pip-log.txt
 ._*
+*.egg-info
