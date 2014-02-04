@@ -1,11 +1,10 @@
+import code
+import logging
 import sys
 import threading
-import code
-
-import uitools.threads
 
 from . import core
-
+from . import threads
 
 _locals = threading.local()
 
@@ -73,7 +72,7 @@ class Interpreter(code.InteractiveConsole):
             return self._runsource(source, *args)
 
     def _call_in_main_thread(self, func, *args):
-        return uitools.threads.call_in_main_thread(func, *args)
+        return threads.call_in_main_thread(func, *args)
 
     def _runsource(self, source, *args):
         _locals.interpreter = self

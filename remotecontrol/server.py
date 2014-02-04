@@ -3,8 +3,7 @@ import threading
 import re
 import traceback
 
-import uitools.threads
-
+from . import threads
 from . import core
 
 
@@ -113,7 +112,7 @@ class CommandPort(object):
 
     def _do_call(self, func, args, kwargs, opts):
         if opts.get('main_thread', True):
-            return uitools.threads.call_in_main_thread(func, *args, **kwargs)
+            return threads.call_in_main_thread(func, *args, **kwargs)
         else:
             return func(*args, **kwargs)
 
