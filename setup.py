@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     
@@ -7,7 +7,7 @@ setup(
     description='A remote REPL and command socket.',
     url='http://github.com/westernx/remotecontrol',
     
-    packages=['remotecontrol'],
+    packages=find_packages(exclude=['build*', 'tests*']),
     
     author='Mike Boers',
     author_email='remotecontrol@mikeboers.com',
