@@ -14,7 +14,9 @@ option_parser = optparse.OptionParser()
 option_parser.add_option('--app')
 option_parser.add_option('-m', '--maya', action='store_const', dest='app', const='maya')
 option_parser.add_option('-n', '--nuke', action='store_const', dest='app', const='nuke')
-option_parser.add_option( '--rv',        action='store_const', dest='app', const='rv')
+option_parser.add_option('--rv',         action='store_const', dest='app', const='rv')
+option_parser.add_option('--houdini',    action='store_const', dest='app', const='houdini')
+option_parser.add_option('--mari',       action='store_const', dest='app', const='mari')
 
 option_parser.add_option('-r', '--raw', dest='raw', action='store_true')
 option_parser.add_option('-i', '--interactive', dest='python', action='store_true')
@@ -36,7 +38,6 @@ if not unix_glob and not args:
     option_parser.print_usage()
     exit(1)
 
-
 if args:
     _, addr = remotecontrol.core.conform_addr(*args)
 
@@ -46,7 +47,7 @@ else:
         try:
             sock.connect(addr)
             break
-        except:
+        except Exception as e:
             continue
     else:
         print 'could not find socket'
