@@ -13,6 +13,8 @@ setup(
     author_email='remotecontrol@mikeboers.com',
     license='BSD-3',
     
+    scripts=['bin/remotecontrol'],
+    
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
