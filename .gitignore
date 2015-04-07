@@ -2,3 +2,7 @@
 .DS_Store
 pip-log.txt
 ._*
+
+# Build products.
+/build
+/*.egg-info
