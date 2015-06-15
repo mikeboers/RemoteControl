@@ -17,6 +17,21 @@ setup(
         'bin/remotecontrol',
     ],
     
+    entry_points={
+        'appinit.maya.gui': '''
+            remotecontrol_maya = remotecontrol.setup:setup_maya
+        ''',
+        'appinit.nuke.gui': '''
+            remotecontrol_nuke = remotecontrol.setup:setup_nuke
+        ''',
+        'appinit.houdini.gui': '''
+            remotecontrol_houdini = remotecontrol.setup:setup_houdini
+        ''',
+        'appinit.mari.gui': '''
+            remotecontrol_mari = remotecontrol.setup:setup_mari
+        ''',
+    },
+
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',

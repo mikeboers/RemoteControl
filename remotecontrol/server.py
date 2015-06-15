@@ -26,7 +26,9 @@ class FakeIO(object):
 
 class CommandPort(object):
     
-    def __init__(self, server, sock, addr, globals=None, locals=None):
+    def __init__(self, server, sock, addr, globals=None, locals=None,
+        call_in_main_thread=None
+    ):
         self.server = server
         self.sock = sock
         self.addr = addr
@@ -38,6 +40,9 @@ class CommandPort(object):
         # Take extra care to pass anything that isn't None through.
         self.globals = {} if globals is None else globals
         self.locals = {} if locals is None else locals
+
+        if call_in_main_thread:
+            self._call_in_main_thread = call_in_main_thread
 
     def interact(self):
         try:
@@ -112,9 +117,12 @@ class CommandPort(object):
 
     def _do_call(self, func, args, kwargs, opts):
         if opts.get('main_thread', True):
-            return threads.call_in_main_thread(func, *args, **kwargs)
+            return self._call_in_main_thread(func, *args, **kwargs)
         else:
             return func(*args, **kwargs)
+
+    def _call_in_main_thread(self, func, *args, **kwargs):
+        return threads.call_in_main_thread(func, *args, **kwargs)
 
     def do_set_pickle(self, expr):
         name, value = core.loads(expr)
@@ -148,8 +156,8 @@ class Server(core.Server):
     client_class = CommandPort
 
 
-def listen(addr, globals=None, locals=None, server_class=Server):
-    console = server_class(addr, globals, locals)
+def listen(addr, globals=None, locals=None, server_class=Server, **kwargs):
+    console = server_class(addr, globals, locals, **kwargs)
     console.listen()
 
 

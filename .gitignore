@@ -3,3 +3,4 @@
 pip-log.txt
 ._*
 *.egg-info
+/build

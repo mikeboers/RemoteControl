@@ -29,9 +29,9 @@ unix_glob = None
 
 if opts.app:
     if opts.raw or opts.python:
-        unix_glob = '/var/tmp/%s.*.cmdsock' % opts.app
+        unix_glob = '/var/tmp/rc.%s.*.cmdsock' % opts.app
     else:
-        unix_glob = '/var/tmp/%s.*.pysock' % opts.app
+        unix_glob = '/var/tmp/rc.%s.*.pysock' % opts.app
 
 
 if not unix_glob and not args:

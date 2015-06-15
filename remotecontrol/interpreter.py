@@ -17,7 +17,7 @@ def use_main_thread(v):
 
 class Interpreter(code.InteractiveConsole):
     
-    def __init__(self, server, sock, addr, locals):
+    def __init__(self, server, sock, addr, locals, call_in_main_thread=None):
 
         # Would be nice to user super, but it doesn't inheric from object
         # so no dice.
@@ -27,7 +27,10 @@ class Interpreter(code.InteractiveConsole):
         self.sock = sock
         self.addr = addr
         self.file = core.fileobject(sock)
+
         self.use_main_thread = True
+        if call_in_main_thread:
+            self._call_in_main_thread = call_in_main_thread
         
     def raw_input(self, prompt):
         
@@ -84,7 +87,7 @@ class Interpreter(code.InteractiveConsole):
         finally:
             self.server.debug('shutting down client %s', self.addr)
             self.sock.close()
-            self.file.close
+            self.file.close # WTF?
 
 
 class Server(core.Server):
@@ -93,8 +96,8 @@ class Server(core.Server):
 
 
 
-def listen(addr, locals=None, server_class=Server):
-    console = server_class(addr, locals)
+def listen(addr, locals=None, server_class=Server, **kwargs):
+    console = server_class(addr, locals, **kwargs)
     console.listen()
 
 
