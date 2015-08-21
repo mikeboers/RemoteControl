@@ -50,7 +50,7 @@ def replace_stdio(in_=None, out=None, err=None):
 
 
 class fileobject(socket._fileobject):
-    """A wrapper around our socket that makes it behave more line a TTY."""
+    """A wrapper around our socket that makes it behave more like a TTY."""
     
     softspace = 0
     
@@ -114,9 +114,13 @@ class Server(object):
         log.info('starting server %s', self.addr)
         
         # Create the server socket.
-        self.sock = socket.socket(self.addr_type)
-        self.sock.bind(self.addr)
-        self.sock.listen(0)
+        try:
+            self.sock = socket.socket(self.addr_type)
+            self.sock.bind(self.addr)
+            self.sock.listen(0)
+        except Exception as e:
+            print e
+            raise
         
         try:
             while True:

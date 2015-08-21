@@ -13,11 +13,12 @@ setup(
     author_email='remotecontrol@mikeboers.com',
     license='BSD-3',
     
-    scripts=[
-        'bin/remotecontrol',
-    ],
-    
     entry_points={
+
+        'console_scripts': '''
+            remotecontrol = remotecontrol.cli:main
+        ''',
+
         'appinit.maya.gui': '''
             remotecontrol_maya = remotecontrol.setup:setup_maya
         ''',

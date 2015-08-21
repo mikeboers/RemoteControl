@@ -14,7 +14,7 @@ def setup(app_name, atexit_register=atexit.register, **kwargs):
     import os
     import sys
 
-    base = '/var/tmp/rc.%s.%s' % (app_name, os.getpid())
+    base = '/var/tmp/remotecontrol.%s.%s' % (app_name, os.getpid())
 
     sock1 = base + '.cmdsock'
     if os.path.exists(sock1):
